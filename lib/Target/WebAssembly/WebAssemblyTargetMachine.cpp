@@ -55,6 +55,7 @@ extern "C" void LLVMInitializeWebAssemblyTarget() {
   initializeLowerGlobalDtorsPass(PR);
   initializeFixFunctionBitcastsPass(PR);
   initializeOptimizeReturnedPass(PR);
+  initializeWebAssemblyPointerArrayIndexExpandPass(PR);
   initializeWebAssemblyArgumentMovePass(PR);
   initializeWebAssemblySetP2AlignOperandsPass(PR);
   initializeWebAssemblyReplacePhysRegsPass(PR);
@@ -219,6 +220,8 @@ void WebAssemblyPassConfig::addIRPasses() {
   // Fix function bitcasts, as WebAssembly requires caller and callee signatures
   // to match.
   addPass(createWebAssemblyFixFunctionBitcasts());
+
+  addPass(createWebAssemblyPointerArrayIndexExpand());
 
   // Optimize "returned" function attributes.
   if (getOptLevel() != CodeGenOpt::None)

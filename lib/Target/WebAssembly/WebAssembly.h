@@ -30,6 +30,7 @@ ModulePass *createWebAssemblyLowerEmscriptenEHSjLj(bool DoEH, bool DoSjLj);
 ModulePass *createWebAssemblyLowerGlobalDtors();
 ModulePass *createWebAssemblyFixFunctionBitcasts();
 FunctionPass *createWebAssemblyOptimizeReturned();
+FunctionPass *createWebAssemblyPointerArrayIndexExpand();
 
 // ISel and immediate followup passes.
 FunctionPass *createWebAssemblyISelDag(WebAssemblyTargetMachine &TM,
@@ -59,6 +60,7 @@ void initializeWebAssemblyLowerEmscriptenEHSjLjPass(PassRegistry &);
 void initializeLowerGlobalDtorsPass(PassRegistry &);
 void initializeFixFunctionBitcastsPass(PassRegistry &);
 void initializeOptimizeReturnedPass(PassRegistry &);
+void initializeWebAssemblyPointerArrayIndexExpandPass(PassRegistry &);
 void initializeWebAssemblyArgumentMovePass(PassRegistry &);
 void initializeWebAssemblySetP2AlignOperandsPass(PassRegistry &);
 void initializeWebAssemblyReplacePhysRegsPass(PassRegistry &);

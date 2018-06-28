@@ -35,6 +35,7 @@ add_llvm_target(WebAssemblyCodeGen
   WebAssemblyOptimizeLiveIntervals.cpp
   WebAssemblyOptimizeReturned.cpp
   WebAssemblyPeephole.cpp
+  WebAssemblyPointerArrayIndexExpand.cpp
   WebAssemblyPrepareForLiveIntervals.cpp
   WebAssemblyRegisterInfo.cpp
   WebAssemblyRegColoring.cpp

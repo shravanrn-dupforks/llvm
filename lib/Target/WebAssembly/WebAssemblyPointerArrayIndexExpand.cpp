@@ -17,6 +17,11 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/InstVisitor.h"
 
+#include <string>
+#include <fstream>
+#include <streambuf>
+#include "stdio.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "wasm-pointer-array-index-expand"
@@ -56,74 +61,86 @@ FunctionPass *llvm::createWebAssemblyPointerArrayIndexExpand() {
 }
 
 void WebAssemblyPointerArrayIndexExpand::visitGetElementPtrInst(GetElementPtrInst &Inst) {
-  if (auto *pointerType = dyn_cast<PointerType>(Inst.getPointerOperandType())) {
-    // Inst.dump();
-    auto baseType = pointerType->getElementType();
-    ArrayType *arrayType = dyn_cast<ArrayType>(baseType);
-    if (baseType->isPointerTy() || (arrayType != nullptr && arrayType->getElementType()->isPointerTy())) {
-      for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
-        auto value = Inst.getOperand(I);
-        Value* newVal;
-        if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
-          auto intVal = valueConst->getSExtValue();
-          if (intVal == 0) {
-            continue;
-          }
-          newVal = ConstantInt::get(value->getType(), intVal * 2, false /* isSigned */);
-        } else {
-          auto multiply = ConstantInt::get(value->getType(), 2, false /* isSigned */);
-          newVal = BinaryOperator::Create(Instruction::BinaryOps::Mul, value, multiply, value->getName(), &Inst);
-          // newVal->dump();
-        }
-        Inst.setOperand(I, newVal);
-        Inst.setIsInBounds(false);
-      }
-      // Inst.dump();
-    } else if (baseType->isStructTy()) {
-      bool indexingIntoPointerArray = false;
-      // Inst.dump();
-      for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
-        auto value = Inst.getOperand(I);
-        if (indexingIntoPointerArray) {
-          Value* newVal;
-          if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
-            auto intVal = valueConst->getSExtValue();
-            newVal = ConstantInt::get(value->getType(), intVal * 2, false /* isSigned */);
-          } else {
-            auto multiply = ConstantInt::get(value->getType(), 2, false /* isSigned */);
-            newVal = BinaryOperator::Create(Instruction::BinaryOps::Mul, value, multiply, value->getName(), &Inst);
-            // newVal->dump();
-          }
-          Inst.setOperand(I, newVal);
-          indexingIntoPointerArray = false;
-        }
-        SmallVector<Value *, 8> IdxVec(Inst.idx_begin(),
-                                   Inst.idx_begin() + I);
-        auto indexType = GetElementPtrInst::getIndexedType(baseType, IdxVec);
-        ArrayType *indexArrayType = dyn_cast<ArrayType>(indexType);
-        if (indexArrayType != nullptr && indexArrayType->getElementType()->isPointerTy()) {
-          indexingIntoPointerArray = true;
-        }
-      }
-    }
+  std::ifstream tFile("/home/shr/Desktop/wasm_bitness.txt");
+  std::string str((std::istreambuf_iterator<char>(tFile)),
+                  std::istreambuf_iterator<char>());
+  if(str == "32" || str == "32\n") { return; }
+  else if(!(str == "64" || str == "64\n")) { printf("Bad bitness: %s", str.c_str()); exit(1); }
 
-    auto operandType = Inst.getOperand(1)->getType();
-    if(operandType == Type::getInt64Ty(operandType->getContext())) {
-      auto targetType = Type::getInt32Ty(operandType->getContext());
-      for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
-        auto value = Inst.getOperand(I);
-        Value* newVal;
-        if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
-          auto intVal = valueConst->getSExtValue();
-          newVal = ConstantInt::get(targetType, intVal, false /* isSigned */);
-        } else {
-          newVal = new TruncInst(value, targetType, value->getName(), &Inst);
-          // newVal->dump();
-        }
-        Inst.setOperand(I, newVal);
-      }
-    }
-  }
+  // //hack!
+  // if(Inst.getFunction()->getName().str() == "init_bins")
+  // {
+  //   return;
+  // }
+
+  // if (auto *pointerType = dyn_cast<PointerType>(Inst.getPointerOperandType())) {
+  //   // Inst.dump();
+  //   auto baseType = pointerType->getElementType();
+  //   ArrayType *arrayType = dyn_cast<ArrayType>(baseType);
+  //   if (baseType->isPointerTy() || (arrayType != nullptr && arrayType->getElementType()->isPointerTy())) {
+  //     for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
+  //       auto value = Inst.getOperand(I);
+  //       Value* newVal;
+  //       if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
+  //         auto intVal = valueConst->getSExtValue();
+  //         if (intVal == 0) {
+  //           continue;
+  //         }
+  //         newVal = ConstantInt::get(value->getType(), intVal * 2, false /* isSigned */);
+  //       } else {
+  //         auto multiply = ConstantInt::get(value->getType(), 2, false /* isSigned */);
+  //         newVal = BinaryOperator::Create(Instruction::BinaryOps::Mul, value, multiply, value->getName(), &Inst);
+  //         // newVal->dump();
+  //       }
+  //       Inst.setOperand(I, newVal);
+  //       Inst.setIsInBounds(false);
+  //     }
+  //     // Inst.dump();
+  //   } else if (baseType->isStructTy()) {
+  //     bool indexingIntoPointerArray = false;
+  //     // Inst.dump();
+  //     for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
+  //       auto value = Inst.getOperand(I);
+  //       if (indexingIntoPointerArray) {
+  //         Value* newVal;
+  //         if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
+  //           auto intVal = valueConst->getSExtValue();
+  //           newVal = ConstantInt::get(value->getType(), intVal * 2, false /* isSigned */);
+  //         } else {
+  //           auto multiply = ConstantInt::get(value->getType(), 2, false /* isSigned */);
+  //           newVal = BinaryOperator::Create(Instruction::BinaryOps::Mul, value, multiply, value->getName(), &Inst);
+  //           // newVal->dump();
+  //         }
+  //         Inst.setOperand(I, newVal);
+  //         indexingIntoPointerArray = false;
+  //       }
+  //       SmallVector<Value *, 8> IdxVec(Inst.idx_begin(),
+  //                                  Inst.idx_begin() + I);
+  //       auto indexType = GetElementPtrInst::getIndexedType(baseType, IdxVec);
+  //       ArrayType *indexArrayType = dyn_cast<ArrayType>(indexType);
+  //       if (indexArrayType != nullptr && indexArrayType->getElementType()->isPointerTy()) {
+  //         indexingIntoPointerArray = true;
+  //       }
+  //     }
+  //   }
+
+  //   auto operandType = Inst.getOperand(1)->getType();
+  //   if(operandType == Type::getInt64Ty(operandType->getContext())) {
+  //     auto targetType = Type::getInt32Ty(operandType->getContext());
+  //     for (unsigned I = 1, E = Inst.getNumIndices() + 1; I != E; ++I) {
+  //       auto value = Inst.getOperand(I);
+  //       Value* newVal;
+  //       if (auto *valueConst = dyn_cast<ConstantInt>(value)) {
+  //         auto intVal = valueConst->getSExtValue();
+  //         newVal = ConstantInt::get(targetType, intVal, false /* isSigned */);
+  //       } else {
+  //         newVal = new TruncInst(value, targetType, value->getName(), &Inst);
+  //         // newVal->dump();
+  //       }
+  //       Inst.setOperand(I, newVal);
+  //     }
+  //   }
+  // }
 }
 
 bool WebAssemblyPointerArrayIndexExpand::runOnFunction(Function &F) {
